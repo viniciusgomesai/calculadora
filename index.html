@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Prazo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        'light-bg': '#FFFFFF',
+                        'dark-bg': '#181818'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-full bg-light-bg dark:bg-dark-bg transition-colors duration-200">
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white text-center mb-6">
+                Calculadora de Prazo
+            </h1>
+            
+            <form id="prazoForm" class="space-y-4">
+                <!-- Data Inicial -->
+                <div>
+                    <label for="dataInicial" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Data Inicial
+                    </label>
+                    <input 
+                        type="date" 
+                        id="dataInicial" 
+                        name="dataInicial"
+                        class="w-full text-base px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-700 dark:text-white"
+                        required
+                    >
+                </div>
+
+                <!-- Dias de Prazo -->
+                <div>
+                    <label for="diasPrazo" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Dias de Prazo
+                    </label>
+                    <input 
+                        type="number" 
+                        id="diasPrazo" 
+                        name="diasPrazo"
+                        min="1"
+                        max="3650"
+                        placeholder="Ex: 10"
+                        class="w-full text-base px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary dark:bg-gray-700 dark:text-white"
+                        required
+                    >
+                </div>
+
+                <!-- Botão Calcular -->
+                <button 
+                    type="submit"
+                    class="w-full bg-primary hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-gray-800"
+                >
+                    Calcular Prazo
+                </button>
+            </form>
+
+            <!-- Área de Erro -->
+            <div id="errorMessage" class="hidden mt-4 p-3 bg-red-100 dark:bg-red-900 border border-red-300 dark:border-red-700 rounded-md">
+                <p class="text-sm text-red-600 dark:text-red-400" id="errorText"></p>
+            </div>
+
+            <!-- Área de Resultado -->
+            <div id="resultado" class="hidden mt-4 p-4 bg-green-100 dark:bg-green-900 border border-green-300 dark:border-green-700 rounded-md">
+                <h3 class="text-sm font-medium text-green-800 dark:text-green-200 mb-2">Resultado:</h3>
+                <div class="space-y-1 text-sm text-green-700 dark:text-green-300">
+                    <p><strong>Data Inicial:</strong> <span id="dataInicialResult"></span></p>
+                    <p><strong>Início da Contagem:</strong> <span id="inicioContagem"></span></p>
+                    <p><strong>Dias de Prazo:</strong> <span id="diasResult"></span></p>
+                    <p class="text-lg font-bold text-green-900 dark:text-green-100 mt-2">
+                        <strong>Data Final:</strong> <span id="dataFinal"></span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dark mode detection
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        // Elementos do DOM
+        const form = document.getElementById('prazoForm');
+        const dataInicialInput = document.getElementById('dataInicial');
+        const diasPrazoInput = document.getElementById('diasPrazo');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        const resultado = document.getElementById('resultado');
+        const dataInicialResult = document.getElementById('dataInicialResult');
+        const inicioContagem = document.getElementById('inicioContagem');
+        const diasResult = document.getElementById('diasResult');
+        const dataFinal = document.getElementById('dataFinal');
+
+        // Função para formatar data em dd/mm/aaaa
+        function formatarData(data) {
+            const dia = data.getDate().toString().padStart(2, '0');
+            const mes = (data.getMonth() + 1).toString().padStart(2, '0');
+            const ano = data.getFullYear();
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        // Função para mostrar erro
+        function mostrarErro(mensagem) {
+            errorText.textContent = mensagem;
+            errorMessage.classList.remove('hidden');
+            resultado.classList.add('hidden');
+        }
+
+        // Função para esconder erro
+        function esconderErro() {
+            errorMessage.classList.add('hidden');
+        }
+
+        // Função para validar entrada
+        function validarEntrada(dataInicial, diasPrazo) {
+            // Verificar se a data foi preenchida
+            if (!dataInicial) {
+                return 'Por favor, selecione uma data inicial.';
+            }
+
+            // Verificar se os dias foram preenchidos
+            if (!diasPrazo || diasPrazo <= 0) {
+                return 'Por favor, insira um número válido de dias (maior que 0).';
+            }
+
+            // Verificar se o número de dias é razoável
+            if (diasPrazo > 3650) {
+                return 'Número de dias muito alto. Máximo permitido: 3650 dias (10 anos).';
+            }
+
+            // Verificar se a data não é muito antiga
+            const hoje = new Date();
+            const dataEscolhida = new Date(dataInicial);
+            const anoAtual = hoje.getFullYear();
+            
+            if (dataEscolhida.getFullYear() < (anoAtual - 50)) {
+                return 'Data muito antiga. Selecione uma data mais recente.';
+            }
+
+            return null; // Sem erros
+        }
+
+        // Função principal para calcular o prazo
+        function calcularPrazo(dataInicialStr, diasPrazo) {
+            // Converter string para objeto Date
+            const dataInicial = new Date(dataInicialStr);
+            
+            // Calcular o dia seguinte (início da contagem)
+            const inicioContagemDate = new Date(dataInicial);
+            inicioContagemDate.setDate(inicioContagemDate.getDate() + 1);
+            
+            // Calcular a data final
+            const dataFinalDate = new Date(inicioContagemDate);
+            dataFinalDate.setDate(dataFinalDate.getDate() + diasPrazo - 1);
+            
+            return {
+                dataInicial: dataInicial,
+                inicioContagem: inicioContagemDate,
+                dataFinal: dataFinalDate
+            };
+        }
+
+        // Event listener para o formulário
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const dataInicialValue = dataInicialInput.value;
+            const diasPrazoValue = parseInt(diasPrazoInput.value);
+            
+            // Validar entrada
+            const erro = validarEntrada(dataInicialValue, diasPrazoValue);
+            if (erro) {
+                mostrarErro(erro);
+                return;
+            }
+            
+            // Esconder mensagens de erro
+            esconderErro();
+            
+            try {
+                // Calcular as datas
+                const calculo = calcularPrazo(dataInicialValue, diasPrazoValue);
+                
+                // Exibir resultado
+                dataInicialResult.textContent = formatarData(calculo.dataInicial);
+                inicioContagem.textContent = formatarData(calculo.inicioContagem);
+                diasResult.textContent = `${diasPrazoValue} dias`;
+                dataFinal.textContent = formatarData(calculo.dataFinal);
+                
+                resultado.classList.remove('hidden');
+                
+            } catch (error) {
+                mostrarErro('Erro ao calcular o prazo. Verifique os dados inseridos.');
+            }
+        });
+
+        // Limpar erros quando o usuário começar a digitar
+        dataInicialInput.addEventListener('input', esconderErro);
+        diasPrazoInput.addEventListener('input', esconderErro);
+    </script>
+</body>
+</html>
